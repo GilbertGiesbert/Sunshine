@@ -25,6 +25,10 @@ import java.util.List;
 
 public class ForecastFragment extends Fragment {
 
+    private final String LOG_TAG = ForecastFragment.class.getSimpleName();
+
+    ArrayAdapter<String> adapter;
+
     @Override
     public void onCreate(Bundle savedInstanceBundle) {
         super.onCreate(savedInstanceBundle);
@@ -46,11 +50,10 @@ public class ForecastFragment extends Fragment {
         weekForcast.add("Fri-Sunny-88/63");
         weekForcast.add("Sat-Sunny-70/63");
 
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forcast_textview, weekForcast);
+        adapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forcast_textview, weekForcast);
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forcast);
         listView.setAdapter(adapter);
-
 
         return rootView;
     }
@@ -60,8 +63,29 @@ public class ForecastFragment extends Fragment {
         inflater.inflate(R.menu.forecastfragment,menu);
     }
 
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
 
-    public class FetchWeatherTask extends AsyncTask<String,Void,String> {
+        Log.d(LOG_TAG, "onOptionsItemSelected()");
+        Log.d(LOG_TAG, "item="+getActivity().getResources().getResourceName(item.getItemId()));
+
+
+        int id = item.getItemId();
+        if (id == R.id.action_refresh) {
+
+            String poscode = "94043";
+            String numDays = "7";
+
+            FetchWeatherTask fetchWeatherTask = new FetchWeatherTask();
+
+            fetchWeatherTask.execute(poscode, numDays);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+
+    public class FetchWeatherTask extends AsyncTask<String,Void,String[]> {
 
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
 
@@ -88,10 +112,17 @@ public class ForecastFragment extends Fragment {
         }
 
         @Override
-        protected String doInBackground(String... params) {
+        protected String[] doInBackground(String... params) {
 
             String postcode = (params != null && params.length > 0 && params[0] != null) ? params[0] : "";
+            String numDaysString = (params != null && params.length > 1 && params[1] != null) ? params[1] : "";
 
+            int numDays;
+            try{
+                numDays = Integer.valueOf(numDaysString);
+            }catch (Exception e){
+                numDays = 1;
+            }
 
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
@@ -107,9 +138,10 @@ public class ForecastFragment extends Fragment {
                 // http://openweathermap.org/API#forecast
 //                URL url = new URL("http://api.openweathermap.org/data/2.5/forecast/daily?q=94043&mode=json&units=metric&cnt=7");
 
-                String[] urlParams = {"q="+postcode, "mode=json", "units=metric", "cnt=7"};
+                String[] urlParams = {"q="+postcode, "mode=json", "units=metric", "cnt="+numDays};
                 URL url = new URL(buildURL(urlParams));
                 Log.d(LOG_TAG, "url="+url);
+
 
                         // Create the request to OpenWeatherMap, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -158,20 +190,31 @@ public class ForecastFragment extends Fragment {
                 }
             }
 
+            String[] weatherData;
+            try{
+                weatherData = WeatherDataParser.getWeatherDataFromJson(forecastJsonStr, numDays);
+            }catch (Exception e){
+                weatherData = null;
+            }
 
-            return null;
+            return weatherData;
+        }
+
+        public void onPostExecute(String[] weatherData){
+
+            if(weatherData!=null && weatherData.length>0){
+
+                // avoid notify changes with every add()
+                adapter.setNotifyOnChange(false);
+
+                adapter.clear();
+                for(String data: weatherData)
+                    if(data!=null)
+                        adapter.add(data);
+
+                adapter.setNotifyOnChange(true);
+                adapter.notifyDataSetChanged();
+            }
         }
     }
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            FetchWeatherTask fetchWeatherTask = new FetchWeatherTask();
-            String poscode = "94043";
-            fetchWeatherTask.execute(poscode);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
 }
