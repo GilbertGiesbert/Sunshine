@@ -11,8 +11,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -21,7 +23,6 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.List;
 
 public class ForecastFragment extends Fragment {
 
@@ -42,22 +43,26 @@ public class ForecastFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        List<String> weekForcast = new ArrayList<>();
-        weekForcast.add("Today-Sunny-88/63");
-        weekForcast.add("Tomorrow-Sunny-82/63");
-        weekForcast.add("Weds-Sunny-86/63");
-        weekForcast.add("Thurs-Sunny-74/63");
-        weekForcast.add("Fri-Sunny-88/63");
-        weekForcast.add("Sat-Sunny-70/63");
-
-        adapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forcast_textview, weekForcast);
+        adapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forcast_textview, new ArrayList<String>());
 
         ListView listView = (ListView) rootView.findViewById(R.id.listview_forcast);
         listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                String weather = adapter.getItem(position);
+                Toast.makeText(getActivity(), weather, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        if(adapter.getCount()==0){
+            String postCode = "94043";
+            String numDays = "7";
+            new FetchWeatherTask().execute(postCode, numDays);
+        }
 
         return rootView;
     }
-
 
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.forecastfragment,menu);
@@ -67,23 +72,21 @@ public class ForecastFragment extends Fragment {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         Log.d(LOG_TAG, "onOptionsItemSelected()");
-        Log.d(LOG_TAG, "item="+getActivity().getResources().getResourceName(item.getItemId()));
+        Log.d(LOG_TAG, "item=" + getActivity().getResources().getResourceName(item.getItemId()));
 
 
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
 
-            String poscode = "94043";
+            String postCode = "94043";
             String numDays = "7";
 
-            FetchWeatherTask fetchWeatherTask = new FetchWeatherTask();
+            new FetchWeatherTask().execute(postCode, numDays);
 
-            fetchWeatherTask.execute(poscode, numDays);
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
-
 
     public class FetchWeatherTask extends AsyncTask<String,Void,String[]> {
 

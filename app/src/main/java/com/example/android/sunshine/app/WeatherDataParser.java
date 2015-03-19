@@ -117,7 +117,7 @@ public class WeatherDataParser {
             double low = temperatureObject.getDouble(OWM_MIN);
 
             highAndLow = formatHighLows(high, low);
-            resultStrs[i] = "a "+ day + " - " + description + " - " + highAndLow;
+            resultStrs[i] = day + " - " + description + " - " + highAndLow;
         }
 
         for (String s : resultStrs) {
