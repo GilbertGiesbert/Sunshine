@@ -1,8 +1,11 @@
 package com.example.android.sunshine.app;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -14,7 +17,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -22,13 +25,18 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.Locale;
 
 public class ForecastFragment extends Fragment {
 
     private final String LOG_TAG = ForecastFragment.class.getSimpleName();
 
-    ArrayAdapter<String> adapter;
+    private TextView tv_lastUpdate, tv_tempUnit;
+
+    private ArrayAdapter<String> forecastAdapter;
 
     @Override
     public void onCreate(Bundle savedInstanceBundle) {
@@ -43,25 +51,32 @@ public class ForecastFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_main, container, false);
 
-        adapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forcast_textview, new ArrayList<String>());
+        tv_lastUpdate = (TextView) rootView.findViewById(R.id.tv_lastUpdate);
+        tv_tempUnit = (TextView) rootView.findViewById(R.id.tv_tempUnit);
 
-        ListView listView = (ListView) rootView.findViewById(R.id.listview_forcast);
-        listView.setAdapter(adapter);
+        forecastAdapter = new ArrayAdapter<>(getActivity(), R.layout.list_item_forecast, R.id.list_item_forcast_textview, new ArrayList<String>());
+
+        ListView listView = (ListView) rootView.findViewById(R.id.lv_forecast);
+        listView.setAdapter(forecastAdapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                String weather = adapter.getItem(position);
-                Toast.makeText(getActivity(), weather, Toast.LENGTH_SHORT).show();
+
+                String forecast = forecastAdapter.getItem(position);
+
+                Intent intent = new Intent(getActivity(), DetailActivity.class);
+                intent.putExtra("" + IntentExtra.FORECAST_DATA, forecast);
+                startActivity(intent);
             }
         });
 
-        if(adapter.getCount()==0){
-            String postCode = "94043";
-            String numDays = "7";
-            new FetchWeatherTask().execute(postCode, numDays);
-        }
-
         return rootView;
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+        updateWeather();
     }
 
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
@@ -78,14 +93,21 @@ public class ForecastFragment extends Fragment {
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
 
-            String postCode = "94043";
-            String numDays = "7";
-
-            new FetchWeatherTask().execute(postCode, numDays);
+            updateWeather();
 
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void updateWeather(){
+
+        String numDays = "7";
+
+        SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String postCode = defaultPrefs.getString(getString(R.string.pref_location_key), getString(R.string.pref_location_default));
+
+        new FetchWeatherTask().execute(postCode, numDays);
     }
 
     public class FetchWeatherTask extends AsyncTask<String,Void,String[]> {
@@ -112,6 +134,11 @@ public class ForecastFragment extends Fragment {
                 }
             }
             return builder.build().toString();
+        }
+
+        @Override
+        protected void onPreExecute() {
+            tv_lastUpdate.setText(getResources().getString(R.string.currentlyUpdating));
         }
 
         @Override
@@ -208,16 +235,38 @@ public class ForecastFragment extends Fragment {
             if(weatherData!=null && weatherData.length>0){
 
                 // avoid notify changes with every add()
-                adapter.setNotifyOnChange(false);
+                forecastAdapter.setNotifyOnChange(false);
 
-                adapter.clear();
+                forecastAdapter.clear();
                 for(String data: weatherData)
                     if(data!=null)
-                        adapter.add(data);
+                        forecastAdapter.add(data);
 
-                adapter.setNotifyOnChange(true);
-                adapter.notifyDataSetChanged();
+                forecastAdapter.setNotifyOnChange(true);
+                forecastAdapter.notifyDataSetChanged();
+
+                tv_lastUpdate.setText(getResources().getString(R.string.lastUpdated)+": "+getTimeStamp());
+
+                SharedPreferences defaultPrefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                String tempUnit = defaultPrefs.getString(getString(R.string.pref_units_key), getString(R.string.pref_units_metric));
+
+                if(tempUnit.equals(getResources().getString(R.string.pref_units_metric))){
+                    tv_tempUnit.setText(getResources().getString(R.string.pref_units_short_label_metric));
+
+                }else if(tempUnit.equals(getResources().getString(R.string.pref_units_imperial))){
+                    tv_tempUnit.setText(getResources().getString(R.string.pref_units_short_label_imperial));
+
+                }
             }
         }
+    }
+
+    private String getTimeStamp(){
+        String pattern = "HH:mm:ss";
+        Locale locale = getResources().getConfiguration().locale;
+        SimpleDateFormat format = new SimpleDateFormat(pattern, locale);
+        Date date = new Date();
+
+        return format.format(date);
     }
 }
