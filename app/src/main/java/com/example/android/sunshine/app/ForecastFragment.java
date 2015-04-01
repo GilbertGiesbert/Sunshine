@@ -92,9 +92,7 @@ public class ForecastFragment extends Fragment {
 
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
-
             updateWeather();
-
             return true;
         }
         return super.onOptionsItemSelected(item);
@@ -222,7 +220,7 @@ public class ForecastFragment extends Fragment {
 
             String[] weatherData;
             try{
-                weatherData = WeatherDataParser.getWeatherDataFromJson(forecastJsonStr, numDays);
+                weatherData = WeatherDataParser.getWeatherDataFromJson(forecastJsonStr);
             }catch (Exception e){
                 weatherData = null;
             }

@@ -12,7 +12,7 @@
         android:theme="@style/AppTheme" >
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ForecastActivity"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -23,21 +23,21 @@
         <activity
             android:name=".DetailActivity"
             android:label="@string/activity_details_title"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".ForecastActivity" >
             <!-- The meta-data element is needed for versions lower than 4.1=sdk16 -->
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".ForecastActivity" />
         </activity>
 
         <activity
             android:name=".SettingsActivity"
             android:label="@string/activity_settings_title"
-            android:parentActivityName=".MainActivity" >
+            android:parentActivityName=".ForecastActivity" >
             <!-- The meta-data element is needed for versions lower than 4.1=sdk16 -->
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
-                android:value=".MainActivity" />
+                android:value=".ForecastActivity" />
         </activity>
 
     </application>
